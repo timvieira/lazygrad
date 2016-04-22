@@ -1,0 +1,8 @@
+Lazily regularized updates for Adagrad with sparse features. Implemented in Cython for efficiency.
+
+Compile and install
+
+$ pip install -e .
+
+Run test
+$ python -c 'import lazygrad.adagrad as a; a.test()'
