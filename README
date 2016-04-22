@@ -6,3 +6,7 @@ $ pip install -e .
 
 Run test
 $ python -c 'import lazygrad.adagrad as a; a.test()'
+
+Implementation is based on
+
+Kummerfeld et al. 2015, "An Empirical Analysis of Optimization for Max-Margin NLP"
