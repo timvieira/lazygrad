@@ -25,3 +25,9 @@ cdef class LazyRegularizedAdagrad:
 
     cdef inline double catchup(self, int k) nogil
     cdef inline void update_active(self, int k, double g) nogil
+
+    cpdef update(self, int[:] keys, double[:] vals)
+    cdef inline void _update(self, int[:] keys, double[:] vals) nogil
+
+    cpdef double dot(self, int[:] keys)
+    cdef inline double _dot(self, int[:] keys) nogil

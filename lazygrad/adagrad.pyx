@@ -81,6 +81,32 @@ cdef class LazyRegularizedAdagrad:
             self.w[k] -= self.eta*g/sq
         self.u[k] = self.step+1
 
+    cpdef double dot(self, int[:] keys):
+        return self._dot(keys)
+
+    cdef inline double _dot(self, int[:] keys) nogil:
+        """
+        performs dot product with binary vector (i.e., just the keys)
+        Side effect: performs catchup on keys touched.
+        """
+        cdef int k
+        cdef double s = 0.0
+        for k in range(keys.shape[0]):
+            s += self.catchup(keys[k])
+        return s
+
+    cpdef update(self, int[:] keys, double[:] vals):
+        assert keys.shape == vals.shape
+        self._update(keys, vals)
+
+    cdef inline void _update(self, int[:] keys, double[:] vals) nogil:
+        "performs dot product and calls catchup on relevant keys."
+        cdef int k, n
+        cdef double s = 0.0
+        n = keys.shape[0]
+        for k in range(n):
+            self.update_active(keys[k], vals[k])
+
 
 def test():
     """
