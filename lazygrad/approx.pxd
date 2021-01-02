@@ -16,22 +16,10 @@
 
 from libc.math cimport log, exp, sqrt, pow
 
-#cdef inline float fastpow(float x, float y) nogil:
-#    #return x ** y
-#    return exp(y * log(x))
+cdef extern from "/home/timv/projects/lazygrad/lazygrad/invsqrt.h" nogil:
+    float invsqrt(float)
+    double fastpow(double, double)
 
-
-#cdef extern from "/home/timv/projects/lazygrad/lazygrad/invsqrt.h" nogil:
-#    float invsqrt(float)
-#    double fastpow(double, double)
-
-cdef inline double invsqrt(double x) nogil:
-    return 1/sqrt(x)
-#    return x ** -0.5
-
-cdef inline double fastpow(double x, double y) nogil:
-    return pow(x, y)
-#    return x ** y
 
 cdef class LazyRegularizedAdagrad:
 
@@ -56,6 +44,3 @@ cdef class LazyRegularizedAdagrad:
 
     cpdef double dot(self, int[:] keys)
     cdef inline double _dot(self, int[:] keys) nogil
-
-    cpdef update_scalar(self, int[:] keys, double v)
-    cdef inline void _update_scalar(self, int[:] keys, double v) nogil

@@ -10,7 +10,6 @@
 #distutils: extra_compile_args = -Wno-unused-function -Wno-unneeded-internal-declaration
 
 import numpy as np
-from libc.math cimport sqrt
 from libc.stdio cimport printf
 
 cdef inline double sign(double x) nogil:
@@ -119,20 +118,12 @@ cdef class LazyRegularizedAdagrad:
         self._update(keys, vals)
 
     cdef inline void _update(self, int[:] keys, double[:] vals) nogil:
+        "performs dot product and calls catchup on relevant keys."
         cdef int k, n
+        cdef double s = 0.0
         n = keys.shape[0]
         for k in range(n):
             self.update_active(keys[k], vals[k])
-
-    cpdef update_scalar(self, int[:] keys, double v):
-        self._update_scalar(keys, v)
-
-    cdef inline void _update_scalar(self, int[:] keys, double v) nogil:
-        cdef int k, n
-        n = keys.shape[0]
-        for k in range(n):
-            self.update_active(keys[k], v)
-
 
 
 def test_L1():
@@ -192,8 +183,7 @@ def test_L1():
     print w
     print eager.w
     err = np.abs(w-eager.w).max()
-    assert err < 1e-4, err
-
+    assert err < 0.001, err
 
 
 def test_L2():
@@ -251,19 +241,64 @@ def test_L2():
     print 'step=', lazy.step
     w = np.asarray(lazy.finalize())
 
-
-    from arsenal.math import compare
-    compare(eager.w, w)
+    #from arsenal.math import compare
+    #compare(eager.w, w)
 
     print w
     print eager.w
     err = np.abs(w-eager.w).max()
-    assert err < 1e-4, err
+    assert err < 0.0015, err
+
+
+from lazygrad cimport adagrad
+
+def test_speed():
+    from arsenal.timer import timers
+    cdef int i, k
+
+    cdef int I = 50        # number of iterations
+    cdef int D = 100_000   # number of features
+    cdef int K = 100       # number of active features
+    cdef double C = .8     # regularization constant
+    cdef long[:] keys
+    cdef adagrad.LazyRegularizedAdagrad lazy
+    cdef LazyRegularizedAdagrad approx
+
+    T = timers()
+
+    for _ in range(100):
+
+        lazy = adagrad.LazyRegularizedAdagrad(D, L=2, C=C)
+        approx = LazyRegularizedAdagrad(D, L=2, C=C)
+
+        for _ in range(I):
+            keys = np.random.randint(D, size=K).astype(int)
+
+            with T['lazy']:
+                for i in range(K):
+                    k = keys[i]
+                    lazy.catchup(k)
+                    lazy.update_active(k, 1)
+                lazy.step += 1
+
+            with T['approx']:
+                for i in range(K):
+                    k = keys[i]
+                    approx.catchup(k)
+                    approx.update_active(k, 1)
+                approx.step += 1
+
+        err = np.abs(approx.finalize() - lazy.finalize()).max()
+        #print 'difference: %g' % err
+        assert err < 0.001
+
+    T.compare()
 
 
 def test():
     test_L1()
     test_L2()
+    test_speed()
 
 
 if __name__ == '__main__':
